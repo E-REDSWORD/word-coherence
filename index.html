@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>لعبة ترابط الكلمات — جاهز</title>
+  <style>
+    :root{
+      --bg:#071024;
+      --card:#0b1220;
+      --accent:#16a34a;
+      --muted:#94a3b8;
+      --white:#e6eef8;
+      --btn:#2563eb;
+      --danger:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: "Segoe UI", Tahoma, Arial, "Noto Naskh Arabic", sans-serif;
+      background:linear-gradient(180deg,#071024 0%, #0b1220 100%);
+      color:var(--white);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .container{
+      width:100%;
+      max-width:1100px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px;
+      padding:20px;
+      box-shadow:0 8px 30px rgba(2,6,23,0.6);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+    h1{margin:0 0 6px 0;font-size:20px}
+    p.lead{margin:0 0 14px 0;color:var(--muted)}
+    .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+    select{
+      padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);
+      background:rgba(255,255,255,0.02);color:var(--white);font-size:15px;
+      min-width:220px;
+    }
+    button{
+      background:var(--btn);color:white;border:0;padding:10px 12px;border-radius:8px;cursor:pointer;
+      font-weight:600;
+    }
+    button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--white);font-weight:600}
+    .game{
+      margin-top:12px;padding:16px;border-radius:10px;background:rgba(255,255,255,0.01);
+      border:1px solid rgba(255,255,255,0.02);
+    }
+    .header-line{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+    .subtitle{color:var(--muted);font-size:14px}
+    .divider{height:1px;background:rgba(255,255,255,0.03);margin:12px 0;border-radius:2px}
+    .puzzle-word{font-size:22px;font-weight:700;margin-bottom:8px}
+    .answers{display:flex;flex-direction:column;gap:8px}
+    .answer-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .answer-text{font-size:18px}
+    .answer-text.revealed{color:var(--accent);font-weight:700}
+    .small-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--white);padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13px}
+    .small-btn.revealed{background:var(--accent);border-color:transparent;color:#04210b}
+    .note{color:var(--muted);font-size:13px;margin-top:10px}
+    .footer-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+    .solved{
+      margin-top:14px;padding:12px;border-radius:8px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02)
+    }
+    .solved h3{margin:0 0 8px 0;font-size:16px}
+    .solved-list{display:flex;flex-direction:column;gap:6px}
+    .solved-item{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .solved-item .text{font-size:16px}
+    .solved-item.revealed .text{color:var(--accent);font-weight:700}
+    @media (max-width:720px){
+      .controls{flex-direction:column;align-items:stretch}
+      .header-line{flex-direction:column;align-items:flex-start;gap:6px}
+    }
+  </style>
+</head>
+<body>
+  <div class="container" role="main" aria-label="لعبة ترابط الكلمات">
+    <div class="header-line">
+      <div>
+        <h1>ألعاب -𖤍|𝐑𝐄𝐃𝐒𝐖𝐎𝐑𝐃</h1>
+        <p class="subtitle">لعبة ترابط الكلمات</p>
+      </div>
+      <div style="margin-inline-start:auto;color:var(--muted);font-size:13px">جاهز بدون أخطاء</div>
+    </div>
+
+    <p class="lead">اختر كلمة من إحدى القوائم لبدء المثال. يمكنك تعليم أي إجابة حتى لا تُنسخ عند الضغط على "نسخ المثال".</p>
+
+    <div class="controls" aria-hidden="false">
+      <select id="regularSelect" aria-label="قائمة الألغاز العادية"></select>
+      <select id="hardSelect" aria-label="قائمة الألغاز الصعبة جدا"></select>
+
+      <button id="copyExampleBtn" title="نسخ المثال مع حذف الإجابات المعلمة">نسخ المثال</button>
+      <button id="copyAllBtn" title="نسخ المثال مع جميع الإجابات">نسخ إجوبة المثال</button>
+      <button id="resetBtn" class="secondary" title="إعادة تعيين العلامات">إعادة تعيين العلامات</button>
+    </div>
+
+    <div class="game" id="gameArea" aria-live="polite">
+      <div class="puzzle-display">
+        <div class="puzzle-word" id="puzzleWord">اختر لغزًا من إحدى القوائم</div>
+        <div class="divider"></div>
+        <div class="answers" id="answersList"></div>
+      </div>
+
+      <div class="solved" id="solvedArea" aria-live="polite">
+        <h3>إجابات المثال (محلولة)</h3>
+        <div class="solved-list" id="solvedList"></div>
+      </div>
+
+      <div class="note">اضغط على الزر الصغير بجانب كل إجابة لتعليمها (ستصبح خضراء وتُستبعد من "نسخ المثال"). زر "نسخ إجوبة المثال" ينسخ جميع الإجابات كاملة بغض النظر عن العلامات.</div>
+    </div>
+  </div>
+
+  <script>
+    // ======= بيانات الألغاز: 100 عادية + 50 صعبة =======
+    const regularPuzzles = [
+      { key: "سفر", answers: ["شنطة","مطار","طائرة","قطار","جواز سفر"] },
+      { key: "بحر", answers: ["سفينة","مرجان","قارب","غواصة","شاطئ"] },
+      { key: "مدرسة", answers: ["كتاب","معلم","فصل","دفتر","مكتب"] },
+      { key: "مطبخ", answers: ["مقلاة","ثلاجة","موقد","مغسلة","ملاعق"] },
+      { key: "عيد", answers: ["كعكة","هدية","احتفال","صلاة","زينة"] },
+      { key: "مدينة", answers: ["شارع","مبنى","حافلة","سكن","سوق"] },
+      { key: "صحة", answers: ["طبيب","مستشفى","دواء","فحص","علاج"] },
+      { key: "فيلم", answers: ["ممثل","مخرج","سينما","مشهد","تذكرة"] },
+      { key: "حديقة", answers: ["أشجار","زهور","مقعد","ملعب","ممشى"] },
+      { key: "مطعم", answers: ["قائمة","نادل","طاولة","طبق","حجز"] },
+      { key: "سيارة", answers: ["عجلة","محرك","وقود","مقعد","مفتاح"] },
+      { key: "كتاب", answers: ["فصل","غلاف","صفحة","مؤلف","مراجعة"] },
+      { key: "تقنية", answers: ["كمبيوتر","تطبيق","إنترنت","برنامج","هاتف"] },
+      { key: "مطار", answers: ["صالة","بوابة","أمتعة","رحلة","تأشيرة"] },
+      { key: "موسيقى", answers: ["نغمة","آلة","مغني","ألبوم","حفلة"] },
+      { key: "رياضة", answers: ["ملعب","لاعب","حكم","مباراة","هدف"] },
+      { key: "حديقة حيوان", answers: ["أسد","قرد","زرافة","قفص","ممر"] },
+      { key: "طقس", answers: ["مطر","شمس","غيمة","رياح","حرارة"] },
+      { key: "قهوة", answers: ["حبوب","محمصة","كوب","سكر","مقهى"] },
+      { key: "حد", answers: ["سياج","علامة","قانون","حدود","مقياس"] },
+      { key: "مكتبة", answers: ["رفوف","كتب","قارئ","استعارة","هدوء"] },
+      { key: "حديقة منزل", answers: ["نباتات","عشب","سياج","مقعد","نافورة"] },
+      { key: "سوق", answers: ["بائع","زبون","خضار","سعر","كشك"] },
+      { key: "مهرجان", answers: ["عرض","موسيقى","ألعاب","زوار","أكشاك"] },
+      { key: "متحف", answers: ["معروضات","دليل","تذكرة","قاعات","لوحات"] },
+      { key: "حديقة عامة", answers: ["ممشى","أشجار","مقاعد","نافورة","ملاعب"] },
+      { key: "مخبز", answers: ["خبز","عجين","فرن","كعك","مخبوزات"] },
+      { key: "مسرح", answers: ["مسرحية","ممثل","مخرج","مقاعد","ستارة"] },
+      { key: "مركز تجاري", answers: ["محلات","مطاعم","مواقف","دور","عروض"] },
+      { key: "مسبح", answers: ["ماء","حوض","منقذ","قواعد","مناشف"] },
+      { key: "حديقة ألعاب", answers: ["أراجيح","زحليقة","رمل","أطفال","مراقب"] },
+      { key: "مخبأ", answers: ["مكان","خزانة","صندوق","سر","مفتاح"] },
+      { key: "حديقة نباتية", answers: ["نباتات","زراعة","علم","ممر","لوحات"] },
+      { key: "مخبأ طعام", answers: ["مخزن","رف","علبة","تاريخ","تبريد"] },
+      { key: "مركز صحي", answers: ["عيادة","طبيب","ممرضة","فحص","دواء"] },
+      { key: "محطة قطار", answers: ["رصيف","قطار","جدول","تذكرة","بوابة"] },
+      { key: "محطة وقود", answers: ["بنزين","مضخة","عداد","سائق","خدمة"] },
+      { key: "حديقة مائية", answers: ["زحاليق","مسبح","مياه","مظلات","مرافق"] },
+      { key: "مخبز شعبي", answers: ["خبز","فرن","عجين","طعم","زبائن"] },
+      { key: "مركز تعليم", answers: ["دورات","مدرب","مناهج","شهادة","مكتبة"] },
+      { key: "مركز لياقة", answers: ["أجهزة","مدرب","تمارين","قلب","عضلات"] },
+      { key: "مخبأ أدوات", answers: ["صندوق","مفكات","مطرقة","مفاتيح","ترتيب"] },
+      { key: "حديقة تاريخية", answers: ["آثار","لوحات","دليل","زوار","ممرات"] },
+      { key: "مركز شباب", answers: ["أنشطة","ألعاب","دورات","تطوع","مناسبات"] },
+      { key: "مركز ثقافي", answers: ["محاضرات","معارض","ورش","زوار","مكتبة"] },
+      { key: "مركز تسوق", answers: ["محلات","مطاعم","عروض","مواقف","دور"] },
+      { key: "مخبأ كتب", answers: ["رف","كتب","قارئ","هدوء","مراجعة"] },
+      { key: "مركز طبي", answers: ["عيادة","طبيب","ممرضة","دواء","فحص"] },
+      { key: "مركز نقل", answers: ["حافلات","محطة","مواعيد","تذاكر","خدمات"] },
+      { key: "مركز سياحي", answers: ["دليل","جولات","خرائط","حجوزات","معلومات"] },
+      { key: "مركز تعليم قيادة", answers: ["مدرب","سيارة","اختبار","رخصة","ممارسة"] },
+      { key: "مركز فني", answers: ["ورش","فنان","معرض","أدوات","تعليم"] },
+      { key: "مركز بيئي", answers: ["حماية","نباتات","توعية","مشاريع","زوار"] },
+      { key: "مركز اجتماعي", answers: ["فعاليات","تطوع","دعم","مناسبات","خدمات"] },
+      { key: "مركز تجاري صغير", answers: ["محلات","خدمات","زبائن","عروض","مخازن"] },
+      { key: "مركز إعلامي", answers: ["محتوى","مذيع","استوديو","تسجيل","نشر"] },
+      { key: "مركز أبحاث", answers: ["دراسة","تجربة","نتائج","تقرير","مختبر"] },
+      { key: "مركز تدريب", answers: ["مدرب","مناهج","تقييم","شهادة","ورش"] },
+      { key: "مركز خدمات", answers: ["معلومات","دعم","مواعيد","خدمة","مكتب"] },
+      { key: "مركز قانوني", answers: ["محامي","قضية","استشارة","محكمة","وثائق"] },
+      { key: "مركز مالي", answers: ["حساب","تحويل","قرض","استثمار","خدمة"] },
+      { key: "مركز تعليمي للأطفال", answers: ["ألعاب","تعليم","نشاط","مشرف","مناهج"] },
+      { key: "مركز رعاية", answers: ["رعاية","ممرضات","خدمات","مواعيد","تقييم"] },
+      { key: "مركز نقل بحري", answers: ["ميناء","سفن","حاويات","رحلات","مناولة"] },
+      { key: "مركز نقل جوي", answers: ["مطار","رحلات","بوابات","أمتعة","خدمات"] },
+      { key: "مركز نقل بري", answers: ["محطة","حافلات","شاحنات","مواعيد","خدمات"] },
+      { key: "مركز تسليم", answers: ["طرود","شحن","تتبع","مخزن","موظف"] },
+      { key: "مركز صيانة", answers: ["فحص","تصليح","قطع","مهندس","معدات"] },
+      { key: "مركز زراعي", answers: ["مزارع","محاصيل","مبيدات","ري","تربة"] },
+      { key: "مركز صناعي", answers: ["مصانع","آلات","عمال","إنتاج","مخازن"] },
+      { key: "مركز تجاري كبير", answers: ["محلات","مطاعم","سينما","مواقف","خدمات"] },
+      { key: "مركز ترفيهي", answers: ["ألعاب","عروض","زوار","مرافق","نشاطات"] },
+      { key: "مركز طبي تخصصي", answers: ["جراحة","أطباء","عيادات","معدات","رعاية"] },
+      { key: "مركز تعليم عن بعد", answers: ["دورات","منصة","محاضرات","شهادات","تقييم"] },
+      { key: "مركز دعم فني", answers: ["مساعدة","تذاكر","حلول","مهندس","خدمة"] },
+      { key: "مركز توظيف", answers: ["وظائف","سير","مقابلات","تدريب","توظيف"] },
+      { key: "مركز تطوع", answers: ["مشاريع","متطوعين","تنسيق","فعاليات","تدريب"] },
+      { key: "مركز رياضي", answers: ["تدريب","مباريات","أجهزة","مدرب","أعضاء"] }
+    ];
+
+    const hardPuzzles = [
+      { key: "تاريخ", answers: ["مصدر","مؤرخ","حقبة","وثيقة","تحليل"] },
+      { key: "فلسفة", answers: ["وجود","منطق","أخلاق","نظرية","جدل"] },
+      { key: "اقتصاد", answers: ["سوق","عرض","طلب","تضخم","استثمار"] },
+      { key: "فلك", answers: ["مجرة","نجم","كوكب","تلسكوب","مدار"] },
+      { key: "طبخ", answers: ["تبريد","تخمير","تقطيع","تتبيل","خبز"] },
+      { key: "لغات", answers: ["قواعد","مفردات","نطق","ترجمة","لهجة"] },
+      { key: "منطق", answers: ["حجة","استنتاج","قواعد","برهان","مقدمات"] },
+      { key: "علم نفس", answers: ["سلوك","عقل","تحليل","تجربة","علاج"] },
+      { key: "أدب", answers: ["رواية","شعر","نقد","أسلوب","مؤلف"] },
+      { key: "سياسة", answers: ["حكومة","قانون","انتخابات","دبلوماسية","سياسات"] },
+      { key: "قانون", answers: ["نص","قاضي","محكمة","عقوبة","دليل"] },
+      { key: "إدارة", answers: ["تنظيم","قيادة","موارد","خطة","تنفيذ"] },
+      { key: "هندسة", answers: ["تصميم","بناء","مخطط","مواد","اختبار"] },
+      { key: "رياضيات", answers: ["معادلة","نظرية","برهان","دالة","حساب"] },
+      { key: "إحصاء", answers: ["عينة","توزيع","متوسط","انحراف","اختبار"] },
+      { key: "بيولوجيا", answers: ["خلية","جين","تطور","نظام","بحث"] },
+      { key: "كيمياء", answers: ["عنصر","تفاعل","مركب","مذيب","تحليل"] },
+      { key: "فيزياء", answers: ["قوة","طاقة","موجة","ذرة","قانون"] },
+      { key: "جغرافيا", answers: ["خريطة","مناخ","قارة","نهر","تضاريس"] },
+      { key: "أخلاق", answers: ["قيمة","واجب","فضيلة","مبدأ","حكم"] },
+      { key: "منهجية", answers: ["منهج","خطوات","أدلة","تقييم","نتائج"] },
+      { key: "سوسيولوجيا", answers: ["مجتمع","ثقافة","علاقات","هيكل","دراسة"] },
+      { key: "أنثروبولوجيا", answers: ["عادات","تراث","مقارنة","ميداني","تحليل"] },
+      { key: "أمن معلومات", answers: ["تشفير","جدار","ثغرة","حماية","نسخ"] },
+      { key: "ذكاء اصطناعي", answers: ["تعلم","خوارزمية","نموذج","بيانات","تدريب"] },
+      { key: "شبكات", answers: ["بروتوكول","راوتر","حزمة","خادم","عميل"] },
+      { key: "تشفير", answers: ["مفتاح","خوارزمية","سرية","فك","توقيع"] },
+      { key: "فلسفة علم", answers: ["فرضية","تجربة","نظرية","تفسير","منهج"] },
+      { key: "أخلاقيات", answers: ["قواعد","مسؤولية","معيار","تقييم","حكم"] },
+      { key: "نقد أدبي", answers: ["تحليل","أسلوب","رمزية","سياق","مقارنة"] },
+      { key: "تحليل بيانات", answers: ["تنظيف","نمذجة","استنتاج","تصور","تقارير"] },
+      { key: "تصميم", answers: ["مفهوم","نموذج","تجربة","تنفيذ","تقييم"] },
+      { key: "إيكولوجيا", answers: ["نظام","توازن","نوع","موئل","تأثير"] },
+      { key: "علم الأعصاب", answers: ["مخ","خلايا","إشارة","وظيفة","بحث"] },
+      { key: "علم المواد", answers: ["خواص","تركيب","اختبار","تطبيق","تصنيع"] },
+      { key: "إدارة مشاريع", answers: ["خطة","موارد","جدول","مخاطر","تسليم"] },
+      { key: "تمويل", answers: ["ميزانية","تحليل","قرض","عوائد","مخاطر"] },
+      { key: "محاسبة", answers: ["قيد","ميزانية","حساب","تقرير","تدقيق"] },
+      { key: "تسويق", answers: ["سوق","علامة","حملة","جمهور","تحليل"] },
+      { key: "سلوك المستهلك", answers: ["دافع","اختيار","تفضيل","تأثير","تجربة"] },
+      { key: "إدارة موارد بشرية", answers: ["توظيف","تقييم","تدريب","مكافآت","سياسات"] },
+      { key: "أمن صناعي", answers: ["سلامة","مخاطر","تدريب","معدات","إجراءات"] },
+      { key: "هندسة برمجيات", answers: ["تصميم","اختبار","نشر","صيانة","متطلبات"] },
+      { key: "تحليل نظم", answers: ["متطلبات","تصميم","تدقيق","تطوير","اختبار"] },
+      { key: "إدارة سلسلة التوريد", answers: ["مورد","مخزون","نقل","توزيع","لوجستيات"] },
+      { key: "اقتصاد دولي", answers: ["تجارة","تعريفات","سعر","عملة","اتفاق"] },
+      { key: "سياسات عامة", answers: ["خطة","تنفيذ","تقييم","مصلحة","قانون"] }
+    ];
+
+    // ======= حالة التطبيق =======
+    let currentPuzzle = null;
+    let currentId = null; // "reg-5" أو "hard-2"
+    const hidden = new Set(); // مؤشرات الإجابات المعلمة (0..4)
+
+    // ======= عناصر DOM =======
+    const regularSelect = document.getElementById('regularSelect');
+    const hardSelect = document.getElementById('hardSelect');
+    const puzzleWordEl = document.getElementById('puzzleWord');
+    const answersListEl = document.getElementById('answersList');
+    const solvedListEl = document.getElementById('solvedList');
+    const copyExampleBtn = document.getElementById('copyExampleBtn');
+    const copyAllBtn = document.getElementById('copyAllBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // ======= وظائف مساعدة =======
+    function maskedText(word){
+      if(!word) return '';
+      const first = word[0];
+      const restCount = word.length - 1;
+      if(restCount <= 0) return first;
+      // نعرض الشرطات مفصولة بمسافة لتكون واضحة
+      return first + ' ' + '_'.repeat(restCount).split('').join(' ');
+    }
+
+    // ملء القوائم بالخيارات
+    function populateSelects(){
+      regularSelect.innerHTML = '';
+      hardSelect.innerHTML = '';
+
+      // إضافة خيار افتراضي واضح
+      const placeholderReg = document.createElement('option');
+      placeholderReg.value = '';
+      placeholderReg.textContent = 'اختر مثالاً (عادي)';
+      placeholderReg.disabled = true;
+      placeholderReg.selected = true;
+      regularSelect.appendChild(placeholderReg);
+
+      regularPuzzles.forEach((p, idx) => {
+        const opt = document.createElement('option');
+        opt.value = `reg-${idx}`;
+        opt.textContent = p.key;
+        regularSelect.appendChild(opt);
+      });
+
+      const placeholderHard = document.createElement('option');
+      placeholderHard.value = '';
+      placeholderHard.textContent = 'اختر مثالاً (صعب جداً)';
+      placeholderHard.disabled = true;
+      placeholderHard.selected = true;
+      hardSelect.appendChild(placeholderHard);
+
+      hardPuzzles.forEach((p, idx) => {
+        const opt = document.createElement('option');
+        opt.value = `hard-${idx}`;
+        opt.textContent = p.key;
+        hardSelect.appendChild(opt);
+      });
+
+      // افتراضي: لا تختار أيًا منهما حتى يضغط المستخدم
+      puzzleWordEl.textContent = 'اختر لغزًا من إحدى القوائم';
+      answersListEl.innerHTML = '';
+      solvedListEl.innerHTML = '';
+    }
+
+    // تحميل لغز حسب المعرف
+    function loadPuzzleById(id){
+      hidden.clear();
+      currentId = id;
+      if(!id) return;
+      const [type, idxStr] = id.split('-');
+      const idx = Number(idxStr);
+      if(type === 'reg'){
+        currentPuzzle = regularPuzzles[idx];
+        // إعادة تعيين اختيار القائمة الأخرى
+        hardSelect.selectedIndex = 0;
+      } else {
+        currentPuzzle = hardPuzzles[idx];
+        regularSelect.selectedIndex = 0;
+      }
+      renderPuzzle();
+    }
+
+    // عرض اللغز والتلميحات والإجابات المحلولة
+    function renderPuzzle(){
+      if(!currentPuzzle){
+        puzzleWordEl.textContent = 'اختر لغزًا من إحدى القوائم';
+        answersListEl.innerHTML = '';
+        solvedListEl.innerHTML = '';
+        return;
+      }
+      puzzleWordEl.textContent = `(${currentPuzzle.key})`;
+      answersListEl.innerHTML = '';
+      currentPuzzle.answers.forEach((ans, i) => {
+        const row = document.createElement('div');
+        row.className = 'answer-row';
+
+        const text = document.createElement('div');
+        text.className = 'answer-text';
+        text.setAttribute('data-index', i);
+        text.textContent = maskedText(ans);
+        if(hidden.has(i)) text.classList.add('revealed');
+
+        const btn = document.createElement('button');
+        btn.className = 'small-btn';
+        btn.setAttribute('aria-pressed', hidden.has(i) ? 'true' : 'false');
+        btn.title = 'تعليم/إلغاء تعليم هذه الإجابة';
+        btn.innerHTML = '✔';
+        if(hidden.has(i)) btn.classList.add('revealed');
+
+        btn.addEventListener('click', () => {
+          toggleHidden(i, text, btn);
+          renderSolvedAnswers();
+        });
+
+        row.appendChild(text);
+        row.appendChild(btn);
+        answersListEl.appendChild(row);
+      });
+
+      renderSolvedAnswers();
+    }
+
+    // عرض الإجابات المحلولة (كاملة) مع تمييز الإجابات المعلمة
+    function renderSolvedAnswers(){
+      solvedListEl.innerHTML = '';
+      if(!currentPuzzle) return;
+      currentPuzzle.answers.forEach((ans, i) => {
+        const item = document.createElement('div');
+        item.className = 'solved-item';
+        if(hidden.has(i)) item.classList.add('revealed');
+
+        const txt = document.createElement('div');
+        txt.className = 'text';
+        txt.textContent = ans;
+
+        const info = document.createElement('div');
+        info.style.fontSize = '13px';
+        info.style.color = 'var(--muted)';
+        info.textContent = hidden.has(i) ? 'معلّم (مستبعد من النسخ)' : '';
+
+        item.appendChild(txt);
+        item.appendChild(info);
+        solvedListEl.appendChild(item);
+      });
+    }
+
+    // تبديل حالة الإجابة (معلمة أم لا)
+    function toggleHidden(index, textEl, btnEl){
+      if(hidden.has(index)){
+        hidden.delete(index);
+        textEl.classList.remove('revealed');
+        btnEl.classList.remove('revealed');
+        btnEl.setAttribute('aria-pressed','false');
+      } else {
+        hidden.add(index);
+        textEl.classList.add('revealed');
+        btnEl.classList.add('revealed');
+        btnEl.setAttribute('aria-pressed','true');
+      }
+    }
+
+    // بناء نص المثال للنسخ
+    function buildExampleText({excludeHidden = true, showFullAnswers = false} = {}){
+      if(!currentPuzzle) return '';
+      const header = `ألعاب -𖤍|𝐑𝐄𝐃𝐒𝐖𝐎𝐑𝐃\nلعبة ترابط الكلمات\n-----------------------\n  (${currentPuzzle.key})\n`;
+      const footer = `\n------------------\n`;
+      const bodyLines = [];
+
+      currentPuzzle.answers.forEach((ans, i) => {
+        const isHidden = hidden.has(i);
+        if(excludeHidden && isHidden && !showFullAnswers){
+          return;
+        }
+        if(showFullAnswers){
+          bodyLines.push(ans);
+        } else {
+          bodyLines.push(maskedText(ans));
+        }
+      });
+
+      return header + bodyLines.join('\n') + footer;
+    }
+
+    // نسخ إلى الحافظة
+    async function copyToClipboard(text){
+      try{
+        await navigator.clipboard.writeText(text);
+        return true;
+      }catch(e){
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try{
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          return true;
+        }catch(err){
+          document.body.removeChild(ta);
+          return false;
+        }
+      }
+    }
+
+    // أحداث الأزرار
+    copyExampleBtn.addEventListener('click', async () => {
+      const txt = buildExampleText({excludeHidden:true, showFullAnswers:false});
+      const ok = await copyToClipboard(txt);
+      copyExampleBtn.textContent = ok ? 'تم النسخ ✓' : 'فشل النسخ';
+      setTimeout(()=> copyExampleBtn.textContent = 'نسخ المثال', 1400);
+    });
+
+    copyAllBtn.addEventListener('click', async () => {
+      const txt = buildExampleText({excludeHidden:false, showFullAnswers:true});
+      const ok = await copyToClipboard(txt);
+      copyAllBtn.textContent = ok ? 'تم النسخ ✓' : 'فشل النسخ';
+      setTimeout(()=> copyAllBtn.textContent = 'نسخ إجوبة المثال', 1400);
+    });
+
+    resetBtn.addEventListener('click', () => {
+      hidden.clear();
+      renderPuzzle();
+    });
+
+    // تغيير الاختيار في القوائم
+    regularSelect.addEventListener('change', (e) => {
+      if(e.target.value){
+        loadPuzzleById(e.target.value);
+      }
+    });
+    hardSelect.addEventListener('change', (e) => {
+      if(e.target.value){
+        loadPuzzleById(e.target.value);
+      }
+    });
+
+    // عند التحميل: ملء القوائم
+    populateSelects();
+
+    // تحسين: عند النقر على نص التلميح نعرض كامل الإجابة كـ title
+    answersListEl.addEventListener('click', (ev) => {
+      const t = ev.target;
+      if(t.classList.contains('answer-text')){
+        const idx = Number(t.getAttribute('data-index'));
+        if(currentPuzzle && currentPuzzle.answers[idx]){
+          t.title = currentPuzzle.answers[idx];
+        }
+      }
+    });
+
+    // ======= ضمان عمل القوائم حتى لو كانت كبيرة =======
+    // لا حاجة لإجراءات إضافية؛ القوائم تعمل عبر change events أعلاه.
+  </script>
+</body>
+</html>
